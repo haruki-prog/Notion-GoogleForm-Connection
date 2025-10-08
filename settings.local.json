@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(clasp login)",
+      "Bash(clasp clone:*)",
+      "Bash(clasp create:*)",
+      "Bash(clasp push:*)",
+      "Bash(clasp status:*)",
+      "Bash(clasp open)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
