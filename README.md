@@ -16,9 +16,12 @@ Google Formの回答を自動的にスプレッドシートに転記し、Notion
 
 1. Notionで新しいデータベースを作成
 2. データベースに以下のプロパティを追加:
-   - `Name` (Title) - 必須
-   - `Timestamp` (Date)
-   - フォームの各質問に対応するプロパティ（Text型推奨）
+   - `名前` (Title) - 必須
+   - `日付` (Date)
+   - `クライアント名` (Text)
+   - `出社予定時刻` (Text)
+   - `業務内容` (Text)
+   - `出社` (Checkbox)
 3. データベースの右上「...」→「Add connections」→作成したIntegrationを選択
 4. データベースIDを取得:
    - データベースのURLから取得: `https://notion.so/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx?v=...`
@@ -31,7 +34,7 @@ Google Formの回答を自動的にスプレッドシートに転記し、Notion
 ```javascript
 const NOTION_API_KEY = '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'; // 手順1で取得したトークン
 const NOTION_DATABASE_ID = '2852f7a875c580419a19ecae6626cfbf'; // 手順2で取得したデータベースID
-const SPREADSHEET_ID = '1RxrRj9XEpeXiby05v5ydCCgew9Jy4urA8RBKxsP7t6I'; // 既に設定済み
+const SPREADSHEET_ID = '1Q30s0iPmXSW50jx6NgW4fC6szwa4X_yLYSPYPBpIOJQ'; // 既に設定済み
 ```
 
 ### 4. Notionプロパティのカスタマイズ
@@ -39,14 +42,29 @@ const SPREADSHEET_ID = '1RxrRj9XEpeXiby05v5ydCCgew9Jy4urA8RBKxsP7t6I'; // 既に
 `buildNotionProperties()` 関数内で、Google Formの質問とNotionデータベースのプロパティをマッピング:
 
 ```javascript
-// 例: チェックボックスの場合
-properties['選択肢'] = {
-  multi_select: answer.split(', ').map(item => ({ name: item }))
+// 6つのプロパティが設定されています:
+properties['名前'] = {
+  title: [{ text: { content: data.responses['名前'] || '...' } }]
 };
 
-// 例: 数値の場合
-properties['年齢'] = {
-  number: parseInt(answer)
+properties['日付'] = {
+  date: { start: data.timestamp.toISOString().split('T')[0] }
+};
+
+properties['クライアント名'] = {
+  rich_text: [{ text: { content: data.responses['クライアント名'] || '' } }]
+};
+
+properties['出社予定時刻'] = {
+  rich_text: [{ text: { content: data.responses['出社予定時刻'] || '' } }]
+};
+
+properties['業務内容'] = {
+  rich_text: [{ text: { content: data.responses['業務内容'] || '' } }]
+};
+
+properties['出社'] = {
+  checkbox: data.responses['出社'] === 'はい' || data.responses['出社'] === 'true'
 };
 ```
 
@@ -62,16 +80,25 @@ clasp open
 
 ### 6. トリガーのセットアップ
 
+**重要:** Google Formとスプレッドシートをまだ紐付けていない場合は、先にGoogle Formを作成し、「回答」タブから「スプレッドシートにリンク」でスプレッドシート(SPREADSHEET_ID)に紐付けてください。
+
+#### 方法1: 手動でトリガーを設定（推奨）
+1. Apps Script IDE で左側のメニューから「トリガー」(時計アイコン)をクリック
+2. 右下の「トリガーを追加」をクリック
+3. 以下の設定を行う:
+   - 実行する関数: `onFormSubmit`
+   - イベントのソース: `フォームから`
+   - イベントの種類: `フォーム送信時`
+4. 「保存」をクリック
+5. 権限の承認を求められたら承認
+
+//実装メモ：10/08ここまで実装
+
+#### 方法2: setupFormTrigger()関数を使用
 スクリプトエディタで:
 1. `setupFormTrigger()` 関数を実行
 2. 権限を承認
-
-または、手動でトリガーを設定:
-1. スクリプトエディタ → トリガー（時計アイコン）
-2. 「トリガーを追加」
-3. 関数: `onFormSubmit`
-4. イベントソース: フォームから
-5. イベントタイプ: フォーム送信時
+※ この方法は、Google Formが既にスプレッドシートに紐付いている場合のみ使用可能
 
 ## 使用方法
 

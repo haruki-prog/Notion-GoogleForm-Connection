@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(clasp push:*)",
+      "Bash(clasp open)",
+      "Bash(clasp:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

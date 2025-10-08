@@ -6,7 +6,7 @@
 // ===== 設定 =====
 const NOTION_API_KEY = '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'; // NotionのIntegration Tokenを設定
 const NOTION_DATABASE_ID = '2852f7a875c580419a19ecae6626cfbf'; // NotionデータベースIDを設定
-const SPREADSHEET_ID = '1RxrRj9XEpeXiby05v5ydCCgew9Jy4urA8RBKxsP7t6I'; // スプレッドシートID
+const SPREADSHEET_ID = '1Q30s0iPmXSW50jx6NgW4fC6szwa4X_yLYSPYPBpIOJQ'; // スプレッドシートID
 
 /**
  * Google Formの送信時に自動実行されるトリガー関数
@@ -109,49 +109,65 @@ function sendToNotion(data) {
 function buildNotionProperties(data) {
   // この関数はフォームの質問とNotionデータベースのプロパティに応じてカスタマイズが必要
   const properties = {
-    // タイトルプロパティ（必須）
-    'Name': {
+    // タイトルプロパティ（必須） - 名前
+    '名前': {
       title: [
         {
           text: {
-            content: `Form Response - ${Utilities.formatDate(data.timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')}`
+            content: data.responses['名前'] || `Form Response - ${Utilities.formatDate(data.timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')}`
           }
         }
       ]
     },
-    // タイムスタンプ
-    'Timestamp': {
+    // 日付
+    '日付': {
       date: {
-        start: data.timestamp.toISOString()
+        start: data.timestamp.toISOString().split('T')[0] // YYYY-MM-DD形式
       }
+    },
+    // クライアント名
+    'クライアント名': {
+      rich_text: [
+        {
+          text: {
+            content: (data.responses['クライアント名'] || '').substring(0, 2000)
+          }
+        }
+      ]
+    },
+    // 出社予定時刻
+    '出社予定時刻': {
+      rich_text: [
+        {
+          text: {
+            content: (data.responses['出社予定時刻'] || '').substring(0, 2000)
+          }
+        }
+      ]
+    },
+    // 業務内容
+    '業務内容': {
+      rich_text: [
+        {
+          text: {
+            content: (data.responses['業務内容'] || '').substring(0, 2000)
+          }
+        }
+      ]
+    },
+    // 出社
+    '出社': {
+      checkbox: data.responses['出社'] === 'はい' || data.responses['出社'] === 'true' || data.responses['出社'] === true
     }
   };
-
-  // 各回答をNotionプロパティに追加
-  // フォームの質問とNotionのプロパティ名をマッピング
-  for (const [question, answer] of Object.entries(data.responses)) {
-    // プロパティ名をサニタイズ（Notionのプロパティ名として使用可能にする）
-    const propertyName = question;
-
-    // 回答のタイプに応じてプロパティを設定
-    if (typeof answer === 'string') {
-      properties[propertyName] = {
-        rich_text: [
-          {
-            text: {
-              content: answer.substring(0, 2000) // Notionの制限に対応
-            }
-          }
-        ]
-      };
-    }
-  }
 
   return properties;
 }
 
 /**
  * フォーム送信トリガーを手動でセットアップする関数
+ * 使い方: Google Formが既にスプレッドシートに紐付いている場合のみ使用可能
+ * または、スプレッドシートのGUIから「ツール」→「スクリプトエディタ」→「トリガー」で手動設定してください
  */
 function setupFormTrigger() {
   // 既存のトリガーを削除
@@ -164,14 +180,34 @@ function setupFormTrigger() {
 
   // 新しいトリガーを作成
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const form = FormApp.openByUrl(ss.getFormUrl());
 
-  ScriptApp.newTrigger('onFormSubmit')
-    .forForm(form)
-    .onFormSubmit()
-    .create();
+  // スプレッドシートにフォームが紐付いているか確認
+  try {
+    const formUrl = ss.getFormUrl();
+    if (!formUrl) {
+      throw new Error('このスプレッドシートにはGoogle Formが紐付いていません');
+    }
+    const form = FormApp.openByUrl(formUrl);
 
-  Logger.log('Form trigger setup complete');
+    ScriptApp.newTrigger('onFormSubmit')
+      .forForm(form)
+      .onFormSubmit()
+      .create();
+
+    Logger.log('Form trigger setup complete');
+  } catch (error) {
+    Logger.log('エラー: ' + error.toString());
+    Logger.log('');
+    Logger.log('【トリガーの手動設定方法】');
+    Logger.log('1. Apps Script IDE で左側のメニューから「トリガー」(時計アイコン)をクリック');
+    Logger.log('2. 右下の「トリガーを追加」をクリック');
+    Logger.log('3. 以下の設定を行う:');
+    Logger.log('   - 実行する関数: onFormSubmit');
+    Logger.log('   - イベントのソース: フォームから');
+    Logger.log('   - イベントの種類: フォーム送信時');
+    Logger.log('4. 「保存」をクリック');
+    throw error;
+  }
 }
 
 /**
