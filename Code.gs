@@ -4,7 +4,7 @@
  */
 
 // ===== 設定 =====
-const NOTION_API_KEY = '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'; // NotionのIntegration Tokenを設定
+const NOTION_API_KEY = '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'; // NotionのIntegration Tokenを設定
 const NOTION_DATABASE_ID = '2852f7a875c580419a19ecae6626cfbf'; // NotionデータベースIDを設定
 const SPREADSHEET_ID = '1Q30s0iPmXSW50jx6NgW4fC6szwa4X_yLYSPYPBpIOJQ'; // スプレッドシートID
 
@@ -102,6 +102,48 @@ function sendToNotion(data) {
 }
 
 /**
+ * 値を文字列に変換するヘルパー関数
+ * @param {*} value - 変換する値
+ * @return {string} 文字列に変換された値
+ */
+function convertToString(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  return String(value);
+}
+
+/**
+ * 時刻文字列を数値に変換するヘルパー関数
+ * @param {*} value - 時刻の値（例: "09:00", "9", 9）
+ * @return {number} 数値に変換された値
+ */
+function parseTimeToNumber(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  // 既に数値の場合
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  // 文字列の場合
+  const stringValue = String(value);
+
+  // 数値部分のみを抽出してparseFloat（例: "09:00" → 9, "9.5" → 9.5）
+  const parsed = parseFloat(stringValue.replace(/[^0-9.]/g, ''));
+
+  return isNaN(parsed) ? null : parsed;
+}
+
+/**
  * Notionのプロパティオブジェクトを構築
  * @param {Object} data - フォームデータ
  * @return {Object} Notionプロパティオブジェクト
@@ -114,7 +156,7 @@ function buildNotionProperties(data) {
       title: [
         {
           text: {
-            content: data.responses['名前'] || `Form Response - ${Utilities.formatDate(data.timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')}`
+            content: convertToString(data.responses['名前']) || `Form Response - ${Utilities.formatDate(data.timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')}`
           }
         }
       ]
@@ -130,34 +172,28 @@ function buildNotionProperties(data) {
       rich_text: [
         {
           text: {
-            content: (data.responses['クライアント名'] || '').substring(0, 2000)
+            content: convertToString(data.responses['クライアント名']).substring(0, 2000)
           }
         }
       ]
     },
-    // 出社予定時刻
+    // 出社予定時刻（数値）
     '出社予定時刻': {
-      rich_text: [
-        {
-          text: {
-            content: (data.responses['出社予定時刻'] || '').substring(0, 2000)
-          }
-        }
-      ]
+      number: parseTimeToNumber(data.responses['出社予定時刻'])
     },
     // 業務内容
     '業務内容': {
       rich_text: [
         {
           text: {
-            content: (data.responses['業務内容'] || '').substring(0, 2000)
+            content: convertToString(data.responses['業務内容']).substring(0, 2000)
           }
         }
       ]
     },
-    // 出社
+    // 出社（選択式）
     '出社': {
-      checkbox: data.responses['出社'] === 'はい' || data.responses['出社'] === 'true' || data.responses['出社'] === true
+      select: { name: convertToString(data.responses['出社']) }
     }
   };
 
