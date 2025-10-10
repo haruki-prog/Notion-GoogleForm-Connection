@@ -19,23 +19,46 @@ Google Formの回答を自動的にスプレッドシートに転記し、Notion
    - `名前` (Title) - 必須
    - `日付` (Date)
    - `クライアント名` (Text)
-   - `出社予定時刻` (Text)
+   - `出社予定時刻` (Number) - 数値型
    - `業務内容` (Text)
-   - `出社` (Checkbox)
+   - `出社` (Select) - 選択式（フォームの回答値と一致する選択肢を追加）
 3. データベースの右上「...」→「Add connections」→作成したIntegrationを選択
 4. データベースIDを取得:
    - データベースのURLから取得: `https://notion.so/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx?v=...`
    - `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` の部分がデータベースID
 
-### 3. GASスクリプトの設定
+### 3. GASスクリプトの環境変数設定
 
-`Code.gs` ファイルの以下の値を設定:
+**重要:** トークンやIDをコードに直接記述しないため、スクリプトプロパティを使用します。
+
+#### 方法1: setupScriptProperties() 関数を使用（推奨）
+
+1. `Code.gs` の `setupScriptProperties()` 関数内に実際の値を入力:
 
 ```javascript
-const NOTION_API_KEY = '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'; // 手順1で取得したトークン
-const NOTION_DATABASE_ID = '2852f7a875c580419a19ecae6626cfbf'; // 手順2で取得したデータベースID
-const SPREADSHEET_ID = '1Q30s0iPmXSW50jx6NgW4fC6szwa4X_yLYSPYPBpIOJQ'; // 既に設定済み
+properties.setProperties({
+  'NOTION_API_KEY': 'ntn_your_actual_token_here',        // 手順1で取得したトークン
+  'NOTION_DATABASE_ID': 'your_actual_database_id_here',  // 手順2で取得したデータベースID
+  'SPREADSHEET_ID': 'your_actual_spreadsheet_id_here'    // スプレッドシートID
+});
 ```
+
+2. スクリプトエディタで `setupScriptProperties()` 関数を一度だけ実行
+3. ログで設定が正しく保存されたことを確認
+
+#### 方法2: Apps Script IDE で直接設定
+
+1. Apps Script IDE を開く（`clasp open`）
+2. 左側のメニューから「プロジェクトの設定」（歯車アイコン）をクリック
+3. 「スクリプト プロパティ」セクションで「スクリプト プロパティを追加」をクリック
+4. 以下の3つのプロパティを追加:
+   - プロパティ: `NOTION_API_KEY`、値: 手順1で取得したトークン
+   - プロパティ: `NOTION_DATABASE_ID`、値: 手順2で取得したデータベースID
+   - プロパティ: `SPREADSHEET_ID`、値: スプレッドシートID
+
+**セキュリティ上の注意:**
+- スクリプトプロパティに保存された値はリポジトリにコミットされません
+- `.gitignore` に `.env` と `.clasp.json` が含まれています
 
 ### 4. Notionプロパティのカスタマイズ
 
@@ -55,16 +78,18 @@ properties['クライアント名'] = {
   rich_text: [{ text: { content: data.responses['クライアント名'] || '' } }]
 };
 
+// 数値型に変換（例: "09:00" → 9）
 properties['出社予定時刻'] = {
-  rich_text: [{ text: { content: data.responses['出社予定時刻'] || '' } }]
+  number: parseTimeToNumber(data.responses['出社予定時刻'])
 };
 
 properties['業務内容'] = {
   rich_text: [{ text: { content: data.responses['業務内容'] || '' } }]
 };
 
+// 選択式（Notionデータベースの選択肢と一致させる必要あり）
 properties['出社'] = {
-  checkbox: data.responses['出社'] === 'はい' || data.responses['出社'] === 'true'
+  select: { name: data.responses['出社'] }
 };
 ```
 

@@ -4,9 +4,10 @@
  */
 
 // ===== 設定 =====
-const NOTION_API_KEY = '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'; // NotionのIntegration Tokenを設定
-const NOTION_DATABASE_ID = '2852f7a875c580419a19ecae6626cfbf'; // NotionデータベースIDを設定
-const SPREADSHEET_ID = '1Q30s0iPmXSW50jx6NgW4fC6szwa4X_yLYSPYPBpIOJQ'; // スプレッドシートID
+// スクリプトプロパティから環境変数を取得
+const NOTION_API_KEY = PropertiesService.getScriptProperties().getProperty('NOTION_API_KEY');
+const NOTION_DATABASE_ID = PropertiesService.getScriptProperties().getProperty('NOTION_DATABASE_ID');
+const SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
 
 /**
  * Google Formの送信時に自動実行されるトリガー関数
@@ -273,4 +274,25 @@ function testSendLatestResponseToNotion() {
 
   sendToNotion(dataObject);
   Logger.log('Test completed');
+}
+
+/**
+ * 初回セットアップ用: 環境変数（スクリプトプロパティ）を設定
+ * 使い方: この関数内の値を設定してから、一度だけ実行してください
+ */
+function setupScriptProperties() {
+  const properties = PropertiesService.getScriptProperties();
+
+  // ここに実際の値を入力してください
+  properties.setProperties({
+    'NOTION_API_KEY': 'ntn_your_token_here',
+    'NOTION_DATABASE_ID': 'your_database_id_here',
+    'SPREADSHEET_ID': 'your_spreadsheet_id_here'
+  });
+
+  Logger.log('Script properties have been set successfully!');
+  Logger.log('現在の設定値:');
+  Logger.log('NOTION_API_KEY: ' + properties.getProperty('NOTION_API_KEY'));
+  Logger.log('NOTION_DATABASE_ID: ' + properties.getProperty('NOTION_DATABASE_ID'));
+  Logger.log('SPREADSHEET_ID: ' + properties.getProperty('SPREADSHEET_ID'));
 }
